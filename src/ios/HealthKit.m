@@ -279,6 +279,83 @@ static NSString *const HKPluginKeyUUID = @"UUID";
 }
 
 
+- (void) readDifferenceSleepData:(CDVInvokedUrlCommand*)command {
+    
+    //睡眠データの差分を取得
+    //返り値は新しいアンカーの値と、取得したデータ群
+    
+    NSMutableDictionary *args = [command.arguments objectAtIndex:0];
+    NSNumber *targetAnchor_ = [args objectForKey:@"lastAnchor"];
+    
+    //NSNumber *targetAnchor_ = [NSNumber numberWithInt:0];
+    NSUInteger targetAnchor = targetAnchor_.unsignedIntegerValue;
+    
+    HKCategoryType *sleepCategory = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
+    
+    HKAnchoredObjectQuery *query = [[HKAnchoredObjectQuery alloc] initWithType:sleepCategory predicate:nil anchor:targetAnchor limit:HKObjectQueryNoLimit completionHandler:^(HKAnchoredObjectQuery *query, NSArray *results, NSUInteger newAnchor, NSError *error) {
+        
+        CDVPluginResult* result;
+        
+        if (error) {
+            
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
+            
+        }else{
+            
+            //そのままだと渡せないので、データを変換する
+            NSDateFormatter *df = [[NSDateFormatter alloc] init];
+            [df setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+            
+            NSMutableArray *finalResults = [[NSMutableArray alloc] initWithCapacity:results.count];
+            
+            
+            for (HKSample *sample in results) {
+                
+                NSDate *startSample = sample.startDate;
+                NSDate *endSample = sample.endDate;
+                
+                NSMutableDictionary *entry = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
+                                              [df stringFromDate:startSample], HKPluginKeyStartDate,
+                                              [df stringFromDate:endSample], HKPluginKeyEndDate,
+                                              nil];
+                
+                HKCategorySample *csample = (HKCategorySample *)sample;
+                [entry setValue:[NSNumber numberWithLong:csample.value] forKey:HKPluginKeyValue];
+                [entry setValue:csample.categoryType.identifier forKey:@"catagoryType.identifier"];
+                [entry setValue:csample.categoryType.description forKey:@"catagoryType.description"];
+                [entry setValue:csample.UUID.UUIDString forKey:HKPluginKeyUUID];
+                [entry setValue:csample.source.name forKey:HKPluginKeySourceName];
+                [entry setValue:csample.source.bundleIdentifier forKey:HKPluginKeySourceBundleId];
+                [entry setValue:[df stringFromDate:csample.startDate] forKey:HKPluginKeyStartDate];
+                [entry setValue:[df stringFromDate:csample.endDate] forKey:HKPluginKeyEndDate];
+                if (csample.metadata == nil || ![NSJSONSerialization isValidJSONObject:csample.metadata]) {
+                    [entry setValue:@{} forKey:HKPluginKeyMetadata];
+                } else {
+                    [entry setValue:csample.metadata forKey:HKPluginKeyMetadata];
+                }
+                
+                
+                [finalResults addObject:entry];
+            }
+            
+            NSNumber *anchor = [NSNumber numberWithLong:newAnchor];
+            NSDictionary *resultDic = @{@"newAnchor":anchor,
+                                        @"results":finalResults};
+            
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:resultDic];
+        }
+        
+        
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        });
+    }];
+    
+    [self.healthStore executeQuery: query];
+    
+}
+
+
 
 
 /*
