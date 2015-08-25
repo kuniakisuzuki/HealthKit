@@ -31,5 +31,6 @@
 - (void) queryCorrelationType:(CDVInvokedUrlCommand*)command;
 
 - (void) readDifferenceSleepData:(CDVInvokedUrlCommand*)command;
+- (void) saveSleepData:(CDVInvokedUrlCommand*)command;
 
 @end

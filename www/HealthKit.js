@@ -9,6 +9,16 @@ HealthKit.prototype.readDifferenceSleepData = function (options, successCallback
   cordova.exec(successCallback, errorCallback, "HealthKit", "readDifferenceSleepData", [options]);
 };
 
+HealthKit.prototype.saveSleepData = function (options, successCallback, errorCallback) {
+
+  if (typeof options.startDate == 'object') {
+    options.startDate = Math.round(options.startDate.getTime()/1000);
+  }
+  if (typeof options.endDate == 'object') {
+    options.endDate = Math.round(options.endDate.getTime()/1000);
+  }
+  cordova.exec(successCallback, errorCallback, "HealthKit", "saveSleepData", [options]);
+};
 
 HealthKit.prototype.checkAuthStatus = function (options, successCallback, errorCallback) {
   cordova.exec(successCallback, errorCallback, "HealthKit", "checkAuthStatus", [options]);

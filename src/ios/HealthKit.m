@@ -356,6 +356,32 @@ static NSString *const HKPluginKeyUUID = @"UUID";
 }
 
 
+- (void) saveSleepData:(CDVInvokedUrlCommand*)command {
+    
+    NSMutableDictionary *args = [command.arguments objectAtIndex:0];
+    NSDate *startDate = [NSDate dateWithTimeIntervalSince1970:[[args objectForKey:@"startDate"] doubleValue]];
+    NSDate *endDate = [NSDate dateWithTimeIntervalSince1970:[[args objectForKey:@"endDate"] doubleValue]];
+    
+    HKCategoryType *sleepType = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
+    
+    HKCategorySample *sample = [HKCategorySample categorySampleWithType:sleepType value:HKCategoryValueSleepAnalysisAsleep startDate:startDate endDate:endDate];
+    
+    [self.healthStore saveObject:sample withCompletion:^(BOOL success, NSError *error) {
+        
+        CDVPluginResult* result;
+        
+        if (success) {
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else {
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error description]];
+        }
+        
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        });
+    }];
+    
+}
 
 
 /*
