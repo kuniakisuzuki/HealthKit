@@ -279,6 +279,49 @@ static NSString *const HKPluginKeyUUID = @"UUID";
 }
 
 
+-(NSMutableArray*) convertSleepDataToCordovaObject:(NSArray*)results
+{
+    
+    //そのままだと渡せないので、データを変換する
+    NSDateFormatter *df = [[NSDateFormatter alloc] init];
+    [df setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+    
+    NSMutableArray *finalResults = [[NSMutableArray alloc] initWithCapacity:results.count];
+    
+    
+    for (HKSample *sample in results) {
+        
+        NSDate *startSample = sample.startDate;
+        NSDate *endSample = sample.endDate;
+        
+        NSMutableDictionary *entry = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
+                                      [df stringFromDate:startSample], HKPluginKeyStartDate,
+                                      [df stringFromDate:endSample], HKPluginKeyEndDate,
+                                      nil];
+        
+        HKCategorySample *csample = (HKCategorySample *)sample;
+        [entry setValue:[NSNumber numberWithLong:csample.value] forKey:HKPluginKeyValue];
+        [entry setValue:csample.categoryType.identifier forKey:@"catagoryType.identifier"];
+        [entry setValue:csample.categoryType.description forKey:@"catagoryType.description"];
+        [entry setValue:csample.UUID.UUIDString forKey:HKPluginKeyUUID];
+        [entry setValue:csample.source.name forKey:HKPluginKeySourceName];
+        [entry setValue:csample.source.bundleIdentifier forKey:HKPluginKeySourceBundleId];
+        [entry setValue:[df stringFromDate:csample.startDate] forKey:HKPluginKeyStartDate];
+        [entry setValue:[df stringFromDate:csample.endDate] forKey:HKPluginKeyEndDate];
+        if (csample.metadata == nil || ![NSJSONSerialization isValidJSONObject:csample.metadata]) {
+            [entry setValue:@{} forKey:HKPluginKeyMetadata];
+        } else {
+            [entry setValue:csample.metadata forKey:HKPluginKeyMetadata];
+        }
+        
+        
+        [finalResults addObject:entry];
+    }
+
+    return finalResults;
+}
+
+
 - (void) readDifferenceSleepData:(CDVInvokedUrlCommand*)command {
     
     //睡眠データの差分を取得
@@ -303,40 +346,7 @@ static NSString *const HKPluginKeyUUID = @"UUID";
         }else{
             
             //そのままだと渡せないので、データを変換する
-            NSDateFormatter *df = [[NSDateFormatter alloc] init];
-            [df setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
-            
-            NSMutableArray *finalResults = [[NSMutableArray alloc] initWithCapacity:results.count];
-            
-            
-            for (HKSample *sample in results) {
-                
-                NSDate *startSample = sample.startDate;
-                NSDate *endSample = sample.endDate;
-                
-                NSMutableDictionary *entry = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
-                                              [df stringFromDate:startSample], HKPluginKeyStartDate,
-                                              [df stringFromDate:endSample], HKPluginKeyEndDate,
-                                              nil];
-                
-                HKCategorySample *csample = (HKCategorySample *)sample;
-                [entry setValue:[NSNumber numberWithLong:csample.value] forKey:HKPluginKeyValue];
-                [entry setValue:csample.categoryType.identifier forKey:@"catagoryType.identifier"];
-                [entry setValue:csample.categoryType.description forKey:@"catagoryType.description"];
-                [entry setValue:csample.UUID.UUIDString forKey:HKPluginKeyUUID];
-                [entry setValue:csample.source.name forKey:HKPluginKeySourceName];
-                [entry setValue:csample.source.bundleIdentifier forKey:HKPluginKeySourceBundleId];
-                [entry setValue:[df stringFromDate:csample.startDate] forKey:HKPluginKeyStartDate];
-                [entry setValue:[df stringFromDate:csample.endDate] forKey:HKPluginKeyEndDate];
-                if (csample.metadata == nil || ![NSJSONSerialization isValidJSONObject:csample.metadata]) {
-                    [entry setValue:@{} forKey:HKPluginKeyMetadata];
-                } else {
-                    [entry setValue:csample.metadata forKey:HKPluginKeyMetadata];
-                }
-                
-                
-                [finalResults addObject:entry];
-            }
+            NSMutableArray *finalResults = [self convertSleepDataToCordovaObject:results];
             
             NSNumber *anchor = [NSNumber numberWithLong:newAnchor];
             NSDictionary *resultDic = @{@"newAnchor":anchor,
@@ -380,6 +390,32 @@ static NSString *const HKPluginKeyUUID = @"UUID";
             [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
         });
     }];
+    
+}
+
+- (void) setSleepDataObserver:(CDVInvokedUrlCommand*)command {
+    
+    
+    HKCategoryType *sleepType = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
+    
+
+    HKObserverQuery *observationQuery = [[HKObserverQuery alloc] initWithSampleType:sleepType predicate:nil updateHandler:^(HKObserverQuery *query, HKObserverQueryCompletionHandler completionHandler, NSError *error) {
+        //指定タイプの更新があると呼ばれる
+    
+        if (error) {
+            NSLog(@"Failed to set up observer query");
+        }else{
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                
+                CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                [result setKeepCallbackAsBool:YES];
+                [self.commandDelegate sendPluginResult:result callbackId:_callbackId];
+            });
+
+        }
+    }];
+    
+    [self.healthStore executeQuery:observationQuery];
     
 }
 

@@ -2,6 +2,9 @@
 #import <HealthKit/HealthKit.h>
 
 @interface HealthKit :CDVPlugin
+{
+    
+}
 
 @property (nonatomic) HKHealthStore *healthStore;
 
@@ -32,5 +35,6 @@
 
 - (void) readDifferenceSleepData:(CDVInvokedUrlCommand*)command;
 - (void) saveSleepData:(CDVInvokedUrlCommand*)command;
+- (void) setSleepDataObserver:(CDVInvokedUrlCommand*)command;
 
 @end

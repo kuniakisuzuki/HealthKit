@@ -1,6 +1,8 @@
 function HealthKit() {
 }
 
+
+
 HealthKit.prototype.available = function (successCallback, errorCallback) {
   cordova.exec(successCallback, errorCallback, "HealthKit", "available", []);
 };
@@ -19,6 +21,11 @@ HealthKit.prototype.saveSleepData = function (options, successCallback, errorCal
   }
   cordova.exec(successCallback, errorCallback, "HealthKit", "saveSleepData", [options]);
 };
+
+HealthKit.prototype.setSleepDataObserver = function (successCallback, errorCallback) {
+  cordova.exec(successCallback, errorCallback, "HealthKit", "setSleepDataObserver", []);
+};
+
 
 HealthKit.prototype.checkAuthStatus = function (options, successCallback, errorCallback) {
   cordova.exec(successCallback, errorCallback, "HealthKit", "checkAuthStatus", [options]);
@@ -272,6 +279,10 @@ HealthKit.prototype.sumQuantityType = function (options, successCallback, errorC
     
     cordova.exec(successCallback, errorCallback, "HealthKit", "sumQuantityType", [opts]);
 };
+
+
+
+
 
 
 HealthKit.install = function () {
