@@ -374,14 +374,24 @@ static NSString *const HKPluginKeyUUID = @"UUID";
     
     HKCategoryType *sleepType = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
     
-    HKCategorySample *sample = [HKCategorySample categorySampleWithType:sleepType value:HKCategoryValueSleepAnalysisAsleep startDate:startDate endDate:endDate];
+    BOOL isSleep = [[args objectForKey:@"isSleep"] boolValue];
+    HKCategoryValueSleepAnalysis type;
+    if(!isSleep){
+        type = HKCategoryValueSleepAnalysisInBed;//就寝
+    }else{
+        type = HKCategoryValueSleepAnalysisAsleep;//睡眠
+    }
+    
+    
+    HKCategorySample *sample = [HKCategorySample categorySampleWithType:sleepType value:type startDate:startDate endDate:endDate];
+    NSString *UUIDStr = sample.UUID.UUIDString;//この時点でUUIDは取得できるので保持して返すように（それを元データに入れて、重複しないように）
     
     [self.healthStore saveObject:sample withCompletion:^(BOOL success, NSError *error) {
         
         CDVPluginResult* result;
         
         if (success) {
-            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:UUIDStr];
         } else {
             result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error description]];
         }
