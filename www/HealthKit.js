@@ -18,8 +18,6 @@ HealthKit.prototype.saveSleepData = function (options, successCallback, errorCal
     options.endDate = Math.round(options.endDate.getTime()/1000);
   }
 
-  options.isSleep = options.isSleep;
-  
   cordova.exec(successCallback, errorCallback, "HealthKit", "saveSleepData", [options]);
 };
 
@@ -27,6 +25,9 @@ HealthKit.prototype.setSleepDataObserver = function (successCallback, errorCallb
   cordova.exec(successCallback, errorCallback, "HealthKit", "setSleepDataObserver", []);
 };
 
+HealthKit.prototype.deleteSleepData = function (options, successCallback, errorCallback) {
+  cordova.exec(successCallback, errorCallback, "HealthKit", "deleteSleepData", [options]);
+};
 
 HealthKit.prototype.checkAuthStatus = function (options, successCallback, errorCallback) {
   cordova.exec(successCallback, errorCallback, "HealthKit", "checkAuthStatus", [options]);

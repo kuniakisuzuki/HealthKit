@@ -403,6 +403,52 @@ static NSString *const HKPluginKeyUUID = @"UUID";
     
 }
 
+
+- (void) deleteSleepData:(CDVInvokedUrlCommand*)command {
+    
+    NSMutableDictionary *args = [command.arguments objectAtIndex:0];
+    NSString *uuidStr = [args objectForKey:@"uuid"];
+    
+    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:uuidStr];
+    NSPredicate *predicate = [HKQuery predicateForObjectWithUUID:uuid];
+    
+    HKCategoryType *sleepType = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
+    
+    HKSampleQuery *query = [[HKSampleQuery alloc] initWithSampleType:sleepType predicate:predicate limit:1 sortDescriptors:nil resultsHandler:^(HKSampleQuery *query, NSArray *results, NSError *error) {
+        
+        CDVPluginResult* result;
+        
+        if(error){
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
+            
+        }else{
+            
+            if([results count] >= 1){
+                
+                //データが有れば削除
+                HKObject *object = results[0];
+                [self.healthStore deleteObject:object withCompletion:^(BOOL success, NSError *error) {
+                    
+                    if(error){
+                        result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
+                    }else{
+                        result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                    }
+                    
+                }];
+                
+            }else{
+                
+                //無ければ見つからない文字列を返すが、処理としては成功とみなす
+                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"target data missing"];
+            }
+        }
+        
+        
+    }];
+    [self.healthStore executeQuery:query];
+}
+
 - (void) setSleepDataObserver:(CDVInvokedUrlCommand*)command {
     
     

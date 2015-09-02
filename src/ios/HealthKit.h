@@ -36,5 +36,6 @@
 - (void) readDifferenceSleepData:(CDVInvokedUrlCommand*)command;
 - (void) saveSleepData:(CDVInvokedUrlCommand*)command;
 - (void) setSleepDataObserver:(CDVInvokedUrlCommand*)command;
+- (void) deleteSleepData:(CDVInvokedUrlCommand*)command;
 
 @end
