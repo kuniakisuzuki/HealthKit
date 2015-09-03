@@ -414,12 +414,16 @@ static NSString *const HKPluginKeyUUID = @"UUID";
     
     HKCategoryType *sleepType = [HKCategoryType categoryTypeForIdentifier:HKCategoryTypeIdentifierSleepAnalysis];
     
+    
     HKSampleQuery *query = [[HKSampleQuery alloc] initWithSampleType:sleepType predicate:predicate limit:1 sortDescriptors:nil resultsHandler:^(HKSampleQuery *query, NSArray *results, NSError *error) {
         
         CDVPluginResult* result;
         
         if(error){
             result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+            });
             
         }else{
             
@@ -429,21 +433,28 @@ static NSString *const HKPluginKeyUUID = @"UUID";
                 HKObject *object = results[0];
                 [self.healthStore deleteObject:object withCompletion:^(BOOL success, NSError *error) {
                     
+                    CDVPluginResult* result;
+                    
                     if(error){
                         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
                     }else{
                         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
                     }
                     
+                    dispatch_sync(dispatch_get_main_queue(), ^{
+                        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+                    });
                 }];
                 
             }else{
                 
                 //無ければ見つからない文字列を返すが、処理としては成功とみなす
                 result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"target data missing"];
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+                });
             }
         }
-        
         
     }];
     [self.healthStore executeQuery:query];
@@ -465,7 +476,7 @@ static NSString *const HKPluginKeyUUID = @"UUID";
                 
                 CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
                 [result setKeepCallbackAsBool:YES];
-                [self.commandDelegate sendPluginResult:result callbackId:_callbackId];
+                [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
             });
 
         }
